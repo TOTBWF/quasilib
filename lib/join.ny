@@ -333,178 +333,102 @@ def SST.Link.disc
         (ff .ungel))
 ]
 
-def SST.Join (X : Type) (A : X → SST) (B : SST) : SST := [
-| .z ↦ (Σ X (x ↦ A x .z)) ⊔ B .z
+def SST.Join (A : SST) (B : SST) : SST := [
+| .z ↦
+  A .z ⊔ B .z
 | .s ↦ [
-  | inl. xa ↦
+  | inl. a ↦
     SST.Join⁽ᵈ⁾
-      X (Gel X (x ↦ Path X (xa .fst) x))
-      A (x p ↦
-          Path.rec
-            X (x' ↦ SST⁽ᵈ⁾ (A x'))
-            (xa .fst) x (p .ungel)
-            (A (xa .fst) .s (xa .snd)))
+      A (A .s a)
       B (SST.Id B)
   | inr. b ↦
     SST.Join⁽ᵈ⁾
-      X (Gel X (_ ↦ ⊥))
-      A (x ff ↦
-          absurd
-            (SST⁽ᵈ⁾ (A x))
-            (ff .ungel))
+      A (SST.Trivial A)
       B (B .s b)
   ]
 ]
 
 def SST.Join.rec
-  (X : Type)
-  (A : X → SST)
-  (B C : SST)
-  (f : (x : X) → SST.Hom (A x) C)
+  (A B C : SST)
+  (f : SST.Hom A C)
   (g : SST.Hom B C)
-  (L : (x : X) → SST.Link (A x) B C (f x) g)
-  : SST.Hom (SST.Join X A B) C :=
+  (l : SST.Link A B C f g)
+  : SST.Hom (SST.Join A B) C :=
 [
 | .z ↦ [
-  | inl. xa ↦ f (xa .fst) .z (xa .snd)
+  | inl. a ↦ f .z a
   | inr. b ↦ g .z b
   ]
 | .s ↦ [
-  | inl. xa ↦
+  | inl. a ↦
     SST.Join.rec⁽ᵈ⁾
-      X (Gel X (x ↦ Path X (xa .fst) x))
-      A (x p ↦
-        Path.rec
-          X (x' ↦ SST⁽ᵈ⁾ (A x'))
-          (xa .fst) x (p .ungel)
-          (A (xa .fst) .s (xa .snd)))
+      A (A .s a)
       B (SST.Id B)
-      C (C .s (f (xa .fst) .z (xa .snd)))
-      f (x p ↦
-        Path.elim X (xa .fst)
-          (x p ↦
-            SST.Hom⁽ᵈ⁾
-              (A x)
-              (Path.rec X (x' ↦ SST⁽ᵈ⁾ (A x')) (xa .fst) x p (A (xa .fst) .s (xa .snd)))
-              C
-              (C .s (f (xa .fst) .z (xa .snd)))
-              (f x))
-          (f (xa .fst) .s (xa .snd))
-          x
-          (p .ungel))
-      g (L (xa .fst) .z (xa .snd))
-      L (x p ↦
-        Path.elim X (xa .fst)
-          (x p ↦
-            SST.Link⁽ᵈ⁾
-              (A x) (Path.rec X (x' ↦ SST⁽ᵈ⁾ (A x')) (xa .fst) x p (A (xa .fst) .s (xa .snd)))
-              B (SST.Id B)
-              C (C .s (f (xa .fst) .z (xa .snd))) (f x)
-              (Path.elim X (xa .fst)
-                 (x0 p0 ↦
-                  SST.Hom⁽ᵈ⁾ (A x0)
-                    (Path.rec X (x' ↦ SST⁽ᵈ⁾ (A x')) (xa .fst) x0 p0
-                       (A (xa .fst) .s (xa .snd))) C
-                    (C .s (f (xa .fst) .z (xa .snd))) (f x0))
-                 (f (xa .fst) .s (xa .snd)) x p)
-              g (L (xa .fst) .z (xa .snd))
-              (L x))
-          (L (xa .fst) .s (xa .snd))
-          x
-          (p .ungel))
+      C (C .s (f .z a))
+      f (f .s a)
+      g (l .z a)
+      l (l .s a)
   | inr. b ↦
     SST.Join.rec⁽ᵈ⁾
-      X (Gel X (_ ↦ ⊥))
-      A (x ff ↦ absurd (SST⁽ᵈ⁾ (A x)) (ff .ungel))
+      A (SST.Trivial A)
       B (B .s b)
       C (C .s (g .z b))
-      f (x ff ↦
-        absurd
-          (SST.Hom⁽ᵈ⁾
-            (A x) (absurd (SST⁽ᵈ⁾ (A x)) (ff .ungel))
-            C (C .s (g .z b))
-            (f x))
-         (ff .ungel))
+      f (SST.Trivial.elim A C f (C .s (g .z b)))
       g (g .s b)
-      L (x ff ↦
-        absurd
-          (SST.Link⁽ᵈ⁾
-            (A x) (absurd (SST⁽ᵈ⁾ (A x)) (ff .ungel))
-            B (B .s b)
-            C (C .s (g .z b)) (f x)
-            (absurd
-               (SST.Hom⁽ᵈ⁾ (A x) (absurd (SST⁽ᵈ⁾ (A x)) (ff .ungel)) C
-                  (C .s (g .z b)) (f x)) (ff .ungel)) g (g .s b) (L x))
-          (ff .ungel))
+      l ?
   ]
 ]
 
-def SST.Join.inl
-  (X : Type) (A : X → SST) (B : SST) (x : X)
-  : SST.Hom (A x) (SST.Join X A B) :=
-[
-| .z ↦ a ↦ inl. (x, a)
-| .s ↦ a ↦
-  SST.Join.inl⁽ᵈ⁾
-    X (Gel X (x' ↦ Path X x x'))
-    A (x' p ↦
-        Path.rec
-          X (x' ↦ SST⁽ᵈ⁾ (A x'))
-          x x' (p .ungel)
-          (A x .s a))
-    B (SST.Id B)
-    x (ungel := refl.)
-]
+` TODO: We think that this is the key!
+def SST.Join.rec.section
+  (A B C : SST)
+  (f : SST.Hom A C)
+  (g : SST.Hom B C)
+  (l : SST.Link A B C f g)
+  (C' : SST⁽ᵈ⁾ C)
+  (sf : SST.Section A C C' f)
+  (sg : SST.Section B C C' g)
+  ` This probably needs to be a special type
+  (l' : (a : A .z) (b : B .z) → SST.Link⁽ᵈ⁾ A (A .s a) B (B .s b) C ? f (f .s a) (g .s b) l)
+  : SST.Section (SST.Join A B) C C' (SST.Join.rec A B C f g l) := ?
 
-def SST.Join.inr
-  (X : Type) (A : X → SST) (B : SST)
-  : SST.Hom B (SST.Join X A B) :=
-[
-| .z ↦ b ↦ inr. b
-| .s ↦ b ↦
-  SST.Join.inr⁽ᵈ⁾
-    X (Gel X (_ ↦ ⊥))
-    A (x ff ↦ absurd (SST⁽ᵈ⁾ (A x)) (ff .ungel))
-    B (B .s b)
-]
-
-
-def SST.Cone (X : Type) (A : SST) := SST.Join X (_ ↦ SST.▲₀) A
-def SST.Cocone (A : SST) := SST.Join ⊤ (_ ↦ A) SST.▲₀
+def SST.Cone (A : SST) := SST.Join (SST.▲₀) A
+def SST.Cocone (A : SST) := SST.Join A SST.▲₀
 
 def SST.Cone.rec
-  (X : Type)
   (A B : SST)
-  (pt : X → B .z)
+  (pt : B .z)
   (f : SST.Hom A B)
-  (l₀ : (x : X) → SST.Hom⁽ᵈ⁾ A (SST.Id A) B (B .s (pt x)) f)
-  : SST.Hom (SST.Cone X A) B :=
+  (l₀ : SST.Section A B (B .s pt) f)
+  `(l₀ : SST.Hom⁽ᵈ⁾ A (SST.Id A) B (B .s (pt x)) f)
+  : SST.Hom (SST.Cone A) B :=
 SST.Join.rec
-  X (_ ↦ SST.▲₀) A B
-  (x ↦ SST.Disc.elim ⊤ B (_ ↦ pt x))
+  SST.▲₀ A B
+  (SST.Disc.elim ⊤ B (_ ↦ pt))
   f
-  (x ↦ SST.Link.disc ⊤ A B (_ ↦ pt x) f (_ ↦ l₀ x))
+  ?
+  `(_ ↦ SST.Link.disc ⊤ A B (_ ↦ pt x) f (_ ↦ l₀ x))
 
 {`
 # Boundaries and Fillers
 `}
 
 ` The type of generalized n-dimensional boundaries in an SST `A`.
-def ○ (X : Nat → Type) (n : Nat) (A : SST) : Type := match n [
+def ○ (n : Nat) (A : SST) : Type := match n [
 | zero. ↦ ⊤
 | suc. n ↦
   sig
-    (pt : X (suc. n) → A .z
-    , ∂a : ○ X n A
-    , a : ● X n A ∂a
-    , ∂a' : (x : X (suc. n)) → ○⁽ᵈ⁾ X (i _ ↦ ?) n (Nat.degen n) A (A .s (pt x)) ∂a
+    (pt : A .z
+    , ∂a : ○ n A
+    , a : ● n A ∂a
+    , ∂a' : ○⁽ᵈ⁾ n (Nat.degen n) A (A .s pt) ∂a
     )
 ]
 
 ` The type of generalized n-dimensional boundary fillers in an SST `A`.
-and ● (X : Nat → Type) (n : Nat) (A : SST) (○a : ○ X n A) : Type := match n [
-| zero. ↦ X 0 → A .z `A .z
-| suc. n ↦ ? `●⁽ᵈ⁾ n (Nat.degen n) A (A .s (○a .pt)) (○a .∂a) (○a .∂a') (○a .a)
+and ● (n : Nat) (A : SST) (○a : ○ n A) : Type := match n [
+| zero. ↦ A .z
+| suc. n ↦ ●⁽ᵈ⁾ n (Nat.degen n) A (A .s (○a .pt)) (○a .∂a) (○a .∂a') (○a .a)
 ]
 
 
@@ -512,35 +436,48 @@ and ● (X : Nat → Type) (n : Nat) (A : SST) (○a : ○ X n A) : Type := matc
 # Yoneda
 `}
 
-def SST.▲ (X : Nat → Type) : Nat → SST :=
+def SST.▲ : Nat → SST :=
 [
-| zero. ↦ SST.Disc (X 0)
-| suc. n ↦ SST.Join (X (suc. n)) (_ ↦ SST.▲₀) (SST.▲ X n)
+| zero. ↦ SST.▲₀
+| suc. n ↦ SST.Cone (SST.▲ n)
 ]
 
-def SST.▲.pt (X : Nat → Type) (n : Nat) (x : X n) : SST.▲ X n .z :=
+def SST.▲.pt (n : Nat) : SST.▲ n .z :=
 match n [
-| zero. ↦ x
-| suc. n ↦ inl. (x, ())
+| zero. ↦ ()
+| suc. n ↦ inl. ()
 ]
 
 ` SST.▲.elim .s (SST.▲.pt n) = ○a .pt
 
 def SST.▲.elim
-  (X : Nat → Type)
   (n : Nat)
   (A : SST)
-  (○a : ○ X n A)
-  (●a : ● X n A ○a)
-  : SST.Hom (SST.▲ X n) A :=
+  (○a : ○ n A)
+  (●a : ● n A ○a)
+  : SST.Hom (SST.▲ n) A :=
 match n [
-| zero. ↦ SST.Disc.elim (X 0) A ●a
+| zero. ↦ SST.Disc.elim ⊤ A (_ ↦ ●a)
 | suc. n ↦
   SST.Cone.rec
-    (X (suc. n)) (SST.▲ X n) A
+    (SST.▲ n) A
     (○a .pt)
-    (SST.▲.elim X n A (○a .∂a) (○a .a))
-    ?
+    (SST.▲.elim n A (○a .∂a) (○a .a))
+    (SST.▲.link n A ○a ●a)
+]
+
+and SST.▲.link
+  (n : Nat)
+  (A : SST)
+  (○a : ○ (suc. n) A)
+  (●a : ● (suc. n) A ○a)
+  : SST.Section (SST.▲ n) A (A .s (○a .pt)) (SST.▲.elim n A (○a .∂a) (○a .a)) :=
+match n [
+| zero. ↦ ? `Easy: ●a has exactly what we need.
+| suc. n ↦
+
+  ` Characterize the sections of Join.rec
+  SST.▲.link n A (○a .∂a) (○a .a)
 ]
 
 ` def SST.▲.link
