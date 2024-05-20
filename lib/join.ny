@@ -212,7 +212,7 @@ def SST.Disc.elim (X : Type) (A : SST) (a : X → A .z) : SST.Hom (SST.Disc X) A
           (ff .ungel))
 ]
 
-def ▲₀ : SST := SST.Disc ⊤
+def SST.▲₀ : SST := SST.Disc ⊤
 
 {`
 ## Constant display
@@ -303,6 +303,34 @@ codata [
     f (f .s a)
     g (L .z a)
     L
+]
+
+def SST.Link.disc
+  (X : Type) (A B : SST)
+  (f : X → B .z)
+  (g : SST.Hom A B)
+  (l₀ : (x : X) → SST.Hom⁽ᵈ⁾ A (SST.Id A) B (B .s (f x)) g)
+  : SST.Link (SST.Disc X) A B (SST.Disc.elim X B f) g :=
+[
+| .z ↦ x ↦ l₀ x
+| .s ↦ x ↦
+  SST.Link.disc⁽ᵈ⁾
+    X (Gel X (_ ↦ ⊥))
+    A (SST.Id A)
+    B (B .s (f x))
+    f (x' ff ↦
+      absurd
+        (B .s (f x) .z (f x'))
+        (ff .ungel))
+    g (l₀ x) `(g .s (f x))
+    l₀ (x' ff ↦
+      absurd
+        (SST.Hom⁽ᵈᵈ⁾ A (SST.Const A SST.⊤) (SST.Const A SST.⊤)
+          (SST.Const⁽ᵈ⁾ A (SST.Const A SST.⊤) SST.⊤ SST.⊤⁽ᵈ⁾) B (B .s (f x))
+          (B .s (f x'))
+          (B .s (f x) .s (f x') (absurd (B .s (f x) .z (f x')) (ff .ungel))) g
+          (l₀ x) (l₀ x'))
+        (ff .ungel))
 ]
 
 def SST.Join (X : Type) (A : X → SST) (B : SST) : SST := [
@@ -440,3 +468,88 @@ def SST.Join.inr
     B (B .s b)
 ]
 
+
+def SST.Cone (X : Type) (A : SST) := SST.Join X (_ ↦ SST.▲₀) A
+def SST.Cocone (A : SST) := SST.Join ⊤ (_ ↦ A) SST.▲₀
+
+def SST.Cone.rec
+  (X : Type)
+  (A B : SST)
+  (pt : X → B .z)
+  (f : SST.Hom A B)
+  (l₀ : (x : X) → SST.Hom⁽ᵈ⁾ A (SST.Id A) B (B .s (pt x)) f)
+  : SST.Hom (SST.Cone X A) B :=
+SST.Join.rec
+  X (_ ↦ SST.▲₀) A B
+  (x ↦ SST.Disc.elim ⊤ B (_ ↦ pt x))
+  f
+  (x ↦ SST.Link.disc ⊤ A B (_ ↦ pt x) f (_ ↦ l₀ x))
+
+{`
+# Boundaries and Fillers
+`}
+
+` The type of generalized n-dimensional boundaries in an SST `A`.
+def ○ (X : Nat → Type) (n : Nat) (A : SST) : Type := match n [
+| zero. ↦ ⊤
+| suc. n ↦
+  sig
+    (pt : X (suc. n) → A .z
+    , ∂a : ○ X n A
+    , a : ● X n A ∂a
+    , ∂a' : (x : X (suc. n)) → ○⁽ᵈ⁾ X (i _ ↦ ?) n (Nat.degen n) A (A .s (pt x)) ∂a
+    )
+]
+
+` The type of generalized n-dimensional boundary fillers in an SST `A`.
+and ● (X : Nat → Type) (n : Nat) (A : SST) (○a : ○ X n A) : Type := match n [
+| zero. ↦ X 0 → A .z `A .z
+| suc. n ↦ ? `●⁽ᵈ⁾ n (Nat.degen n) A (A .s (○a .pt)) (○a .∂a) (○a .∂a') (○a .a)
+]
+
+
+{`
+# Yoneda
+`}
+
+def SST.▲ (X : Nat → Type) : Nat → SST :=
+[
+| zero. ↦ SST.Disc (X 0)
+| suc. n ↦ SST.Join (X (suc. n)) (_ ↦ SST.▲₀) (SST.▲ X n)
+]
+
+def SST.▲.pt (X : Nat → Type) (n : Nat) (x : X n) : SST.▲ X n .z :=
+match n [
+| zero. ↦ x
+| suc. n ↦ inl. (x, ())
+]
+
+` SST.▲.elim .s (SST.▲.pt n) = ○a .pt
+
+def SST.▲.elim
+  (X : Nat → Type)
+  (n : Nat)
+  (A : SST)
+  (○a : ○ X n A)
+  (●a : ● X n A ○a)
+  : SST.Hom (SST.▲ X n) A :=
+match n [
+| zero. ↦ SST.Disc.elim (X 0) A ●a
+| suc. n ↦
+  SST.Cone.rec
+    (X (suc. n)) (SST.▲ X n) A
+    (○a .pt)
+    (SST.▲.elim X n A (○a .∂a) (○a .a))
+    ?
+]
+
+` def SST.▲.link
+`   (n : Nat)
+`   (A : SST)
+`   (○a : ○ n A)
+`   (●a : ● n A ○a)
+`   : SST.Hom⁽ᵈ⁾
+` ` [
+` ` | .z ↦ v ↦ SST.Disc.elim ⊤
+` ` | .s ↦ v ↦ ?
+` ]
