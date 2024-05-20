@@ -199,17 +199,37 @@ def SST.Disc (X : Type) : SST := [
 | .s ↦ x ↦ SST.Disc⁽ᵈ⁾ X (Gel X (_ ↦ ⊥))
 ]
 
-def SST.Disc.elim (X : Type) (A : SST) (a : X → A .z) : SST.Hom (SST.Disc X) A :=
+def SST.Disc.rec (X : Type) (A : SST) (a : X → A .z) : SST.Hom (SST.Disc X) A :=
 [
 | .z ↦ x ↦ a x
 | .s ↦ x ↦
-  SST.Disc.elim⁽ᵈ⁾
+  SST.Disc.rec⁽ᵈ⁾
     X (Gel X (_ ↦ ⊥))
     A (A .s (a x))
     a (x' ff ↦
         absurd
           (A .s (a x) .z (a x'))
           (ff .ungel))
+]
+
+def SST.Disc.elim
+  (X : Type)
+  (A : SST) (A' : SST⁽ᵈ⁾ A)
+  (a : X → A .z) (a' : (x : X) → A' .z (a x))
+  : SST.Section (SST.Disc X) A A' (SST.Disc.rec X A a)
+  :=
+[
+| .z ↦ x ↦ a' x
+| .s ↦ x ↦
+  SST.Disc.elim⁽ᵈ⁾
+    X (Gel X (_ ↦ ⊥))
+    A (A .s (a x))
+    A' (sym (A' .s (a x) (a' x)))
+    a (x' ff ↦ absurd (A .s (a x) .z (a x')) (ff .ungel))
+    a' (x' ff ↦
+      absurd
+        (sym (A' .s (a x) (a' x)) .z (a x') (absurd (A .s (a x) .z (a x')) (ff .ungel)) (a' x'))
+        (ff .ungel))
 ]
 
 def SST.▲₀ : SST := SST.Disc ⊤
@@ -271,10 +291,28 @@ def SST.Id.to_section
 def SST.Trivial (A : SST) : SST⁽ᵈ⁾ A := SST.Const A SST.⊥
 
 ` Universal property of the trivial bundle.
-def SST.Trivial.elim
+def SST.Trivial.rec
   (A B : SST) (f : SST.Hom A B)
   (B' : SST⁽ᵈ⁾ B)
   : SST.Hom⁽ᵈ⁾ A (SST.Trivial A) B B' f :=
+[
+| .z ↦ a ff ↦ match (ff .ungel) []
+| .s ↦ a ff ↦ match (ff .ungel) []
+]
+
+def SST.Trivial.elim
+  (A : SST)
+  (B : SST) (B' : SST⁽ᵈ⁾ B)
+  (f : SST.Hom A B)
+  (E : SST⁽ᵈ⁾ B) (E' : SST⁽ᵈᵈ⁾ B B' E)
+  (s : SST.Section A B E f)
+  : SST.Section⁽ᵈ⁾
+    A (SST.Trivial A)
+    B B'
+    E E'
+    f (SST.Trivial.rec A B f B')
+    s
+  :=
 [
 | .z ↦ a ff ↦ match (ff .ungel) []
 | .s ↦ a ff ↦ match (ff .ungel) []
@@ -291,26 +329,25 @@ def SST.Link
   : Type
   :=
 codata [
-| L .z :
-  (a : A .z) →
-  SST.Hom⁽ᵈ⁾ B (SST.Id B) C (C .s (f .z a)) g
-| L .s :
+| l .z :
+  (a : A .z) → SST.Section B C (C .s (f .z a)) g
+| l .s :
   (a : A .z) →
   SST.Link⁽ᵈ⁾
     A (A .s a)
     B (SST.Id B)
     C (C .s (f .z a))
     f (f .s a)
-    g (L .z a)
-    L
+    g (SST.Id.of_section B C (C .s (f .z a)) g (l .z a))
+    l
 ]
 
 def SST.Link.disc
   (X : Type) (A B : SST)
   (f : X → B .z)
   (g : SST.Hom A B)
-  (l₀ : (x : X) → SST.Hom⁽ᵈ⁾ A (SST.Id A) B (B .s (f x)) g)
-  : SST.Link (SST.Disc X) A B (SST.Disc.elim X B f) g :=
+  (l₀ : (x : X) → SST.Section A B (B .s (f x)) g)
+  : SST.Link (SST.Disc X) A B (SST.Disc.rec X B f) g :=
 [
 | .z ↦ x ↦ l₀ x
 | .s ↦ x ↦
@@ -322,15 +359,142 @@ def SST.Link.disc
       absurd
         (B .s (f x) .z (f x'))
         (ff .ungel))
-    g (l₀ x) `(g .s (f x))
+    g (SST.Id.of_section A B (B .s (f x)) g (l₀ x))
     l₀ (x' ff ↦
       absurd
-        (SST.Hom⁽ᵈᵈ⁾ A (SST.Const A SST.⊤) (SST.Const A SST.⊤)
-          (SST.Const⁽ᵈ⁾ A (SST.Const A SST.⊤) SST.⊤ SST.⊤⁽ᵈ⁾) B (B .s (f x))
-          (B .s (f x'))
-          (B .s (f x) .s (f x') (absurd (B .s (f x) .z (f x')) (ff .ungel))) g
-          (l₀ x) (l₀ x'))
+        (SST.Section⁽ᵈ⁾
+          A (SST.Id A)
+          B (B .s (f x))
+          (B .s (f x')) (B .s (f x) .s (f x') (absurd (B .s (f x) .z (f x')) (ff .ungel)))
+          g (SST.Id.of_section A B (B .s (f x)) g (l₀ x)) (l₀ x'))
         (ff .ungel))
+]
+
+def SST.Link.trivial
+  (A : SST)
+  (B : SST) (B' : SST⁽ᵈ⁾ B)
+  (C : SST) (C' : SST⁽ᵈ⁾ C)
+  (f : SST.Hom A C)
+  (g : SST.Hom B C) (g' : SST.Hom⁽ᵈ⁾ B B' C C' g)
+  (l : SST.Link A B C f g)
+  : SST.Link⁽ᵈ⁾
+    A (SST.Trivial A)
+    B B'
+    C C'
+    f (SST.Trivial.rec A C f C')
+    g g'
+    l
+  :=
+[
+| .z ↦ a ff ↦ match (ff .ungel) []
+| .s ↦ a ff ↦ match (ff .ungel) []
+]
+
+def SST.LinkP
+  (A B : SST)
+  (C : SST) (C' : SST⁽ᵈ⁾ C)
+  (f : SST.Hom A C) (sf : SST.Section A C C' f)
+  (g : SST.Hom B C) (sg : SST.Section B C C' g)
+  (l : SST.Link A B C f g)
+  : Type :=
+codata [
+| l' .z :
+  (a : A .z) →
+  SST.Section⁽ᵈ⁾
+    B (SST.Id B)
+    C (C .s (f .z a))
+    C' (sym (C' .s (f .z a) (sf .z a)))
+    g (SST.Id.of_section B C (C .s (f .z a)) g (l .z a))
+    sg
+| l' .s :
+  (a : A .z) →
+  SST.LinkP⁽ᵈ⁾
+    A (A .s a)
+    B (SST.Id B)
+    C (C .s (f .z a))
+    C' (sym (C' .s (f .z a) (sf .z a)))
+    f (f .s a)
+    sf (sf .s a)
+    g (SST.Id.of_section B C (C .s (f .z a)) g (l .z a))
+    sg (l' .z a)
+    l (l .s a)
+    l'
+]
+
+def SST.LinkP.disc
+  (X : Type)
+  (A : SST)
+  (B : SST) (B' : SST⁽ᵈ⁾ B)
+  (pt : X → B .z) (pt' : (x : X) → B' .z (pt x))
+  (f : SST.Hom A B) (sf : SST.Section A B B' f)
+  (s : (x : X) →
+    SST.Section A B (B .s (pt x)) f)
+  (s' : (x : X) →
+    SST.Section⁽ᵈ⁾
+      A (SST.Id A)
+      B (B .s (pt x))
+      B' (sym (B' .s (pt x) (pt' x)))
+      f (SST.Id.of_section A B (B .s (pt x)) f (s x))
+      sf)
+  : SST.LinkP
+    (SST.Disc X) A
+    B B'
+    (SST.Disc.rec X B pt)
+    (SST.Disc.elim X B B' pt pt')
+    f sf
+    (SST.Link.disc X A B pt f s)
+  :=
+[
+| .z ↦ x ↦ s' x
+| .s ↦ x ↦
+  SST.LinkP.disc⁽ᵈ⁾
+    X (Gel X (_ ↦ ⊥))
+    A (SST.Id A)
+    B (B .s (pt x))
+    B' (sym (B' .s (pt x) (pt' x)))
+    pt (x' ff ↦ absurd (B .s (pt x) .z (pt x')) (ff .ungel))
+    pt' (x' ff ↦
+      absurd
+        (sym (B' .s (pt x) (pt' x)) .z (pt x') (absurd (B .s (pt x) .z (pt x')) (ff .ungel)) (pt' x'))
+        (ff .ungel))
+    f (SST.Id.of_section A B (B .s (pt x)) f (s x))
+    sf (SST.LinkP.disc X A B B' pt pt' f sf s s' .z x)
+    s (x' ff ↦
+      absurd
+        (SST.Section⁽ᵈ⁾ A (SST.Const A SST.⊤) B (B .s (pt x)) (B .s (pt x'))
+         (B .s (pt x) .s (pt x')
+            (absurd (B .s (pt x) .z (pt x')) (ff .ungel))) f
+         (SST.Id.of_section A B (B .s (pt x)) f (s x)) (s x'))
+        (ff .ungel))
+     s' (x' ff ↦
+       absurd
+         (SST.Section⁽ᵈᵈ⁾ A (SST.Const A SST.⊤) (SST.Const A SST.⊤)
+         (SST.Const⁽ᵈ⁾ A (SST.Const A SST.⊤) SST.⊤ SST.⊤⁽ᵈ⁾) B (B .s (pt x))
+         (B .s (pt x'))
+         (B .s (pt x) .s (pt x')
+            (absurd (B .s (pt x) .z (pt x')) (ff .ungel))) B'
+         (sym (B' .s (pt x) (pt' x))) (sym (B' .s (pt x') (pt' x')))
+         (sym (B' .s (pt x) (pt' x)) .s (pt x')
+            (absurd (B .s (pt x) .z (pt x')) (ff .ungel)) (pt' x')
+            (absurd
+               (sym (B' .s (pt x) (pt' x)) .z (pt x')
+                  (absurd (B .s (pt x) .z (pt x')) (ff .ungel)) (pt' x'))
+               (ff .ungel)))⁽¹³²⁾ f
+         (SST.Id.of_section A B (B .s (pt x)) f (s x))
+         (SST.Id.of_section A B (B .s (pt x')) f (s x'))
+         (SST.Id.of_section⁽ᵈ⁾ A (SST.Const A SST.⊤) B (B .s (pt x))
+            (B .s (pt x'))
+            (B .s (pt x) .s (pt x')
+               (absurd (B .s (pt x) .z (pt x')) (ff .ungel))) f
+            (SST.Id.of_section A B (B .s (pt x)) f (s x)) (s x')
+            (absurd
+               (SST.Section⁽ᵈ⁾ A (SST.Const A SST.⊤) B (B .s (pt x))
+                  (B .s (pt x'))
+                  (B .s (pt x) .s (pt x')
+                     (absurd (B .s (pt x) .z (pt x')) (ff .ungel))) f
+                  (SST.Id.of_section A B (B .s (pt x)) f (s x)) (s x'))
+               (ff .ungel))) sf (s' x) (s' x'))
+             (ff .ungel))
 ]
 
 def SST.Join (A : SST) (B : SST) : SST := [
@@ -366,21 +530,20 @@ def SST.Join.rec
       B (SST.Id B)
       C (C .s (f .z a))
       f (f .s a)
-      g (l .z a)
+      g (SST.Id.of_section B C (C .s (f .z a)) g (l .z a))
       l (l .s a)
   | inr. b ↦
     SST.Join.rec⁽ᵈ⁾
       A (SST.Trivial A)
       B (B .s b)
       C (C .s (g .z b))
-      f (SST.Trivial.elim A C f (C .s (g .z b)))
+      f (SST.Trivial.rec A C f (C .s (g .z b)))
       g (g .s b)
-      l ?
+      l (SST.Link.trivial A B (B .s b) C (C .s (g .z b)) f g (g .s b) l)
   ]
 ]
 
-` TODO: We think that this is the key!
-def SST.Join.rec.section
+def SST.Join.elim
   (A B C : SST)
   (f : SST.Hom A C)
   (g : SST.Hom B C)
@@ -388,9 +551,45 @@ def SST.Join.rec.section
   (C' : SST⁽ᵈ⁾ C)
   (sf : SST.Section A C C' f)
   (sg : SST.Section B C C' g)
-  ` This probably needs to be a special type
-  (l' : (a : A .z) (b : B .z) → SST.Link⁽ᵈ⁾ A (A .s a) B (B .s b) C ? f (f .s a) (g .s b) l)
-  : SST.Section (SST.Join A B) C C' (SST.Join.rec A B C f g l) := ?
+  (l' : SST.LinkP A B C C' f sf g sg l)
+  : SST.Section (SST.Join A B) C C' (SST.Join.rec A B C f g l) :=
+[
+| .z ↦ [
+  | inl. a ↦ sf .z a
+  | inr. b ↦ sg .z b
+  ]
+| .s ↦ [
+  | inl. a ↦
+    SST.Join.elim⁽ᵈ⁾
+      A (A .s a)
+      B (SST.Id B)
+      C (C .s (f .z a))
+      f (f .s a)
+      g (SST.Id.of_section B C (C .s (f .z a)) g (l .z a))
+      l (l .s a)
+      C' (sym (C' .s (f .z a) (sf .z a)))
+      sf (sf .s a)
+      sg (l' .z a)
+      l' (l' .s a)
+  | inr. b ↦
+    SST.Join.elim⁽ᵈ⁾
+      A (SST.Trivial A)
+      B (B .s b)
+      C (C .s (g .z b))
+      f (SST.Trivial.rec A C f (C .s (g .z b)))
+      g (g .s b)
+      l (SST.Link.trivial A B (B .s b) C (C .s (g .z b)) f g (g .s b) l)
+      C' (sym (C' .s (g .z b) (sg .z b)))
+      sf (SST.Trivial.elim
+        A
+        C (C .s (g .z b))
+        f
+        C' (sym (C' .s (g .z b) (sg .z b)))
+        sf)
+      sg (sg .s b)
+      l' ? `(SST.LinkP.disc)
+  ]
+]
 
 def SST.Cone (A : SST) := SST.Join (SST.▲₀) A
 def SST.Cocone (A : SST) := SST.Join A SST.▲₀
@@ -400,14 +599,12 @@ def SST.Cone.rec
   (pt : B .z)
   (f : SST.Hom A B)
   (l₀ : SST.Section A B (B .s pt) f)
-  `(l₀ : SST.Hom⁽ᵈ⁾ A (SST.Id A) B (B .s (pt x)) f)
   : SST.Hom (SST.Cone A) B :=
 SST.Join.rec
   SST.▲₀ A B
-  (SST.Disc.elim ⊤ B (_ ↦ pt))
+  (SST.Disc.rec ⊤ B (_ ↦ pt))
   f
-  ?
-  `(_ ↦ SST.Link.disc ⊤ A B (_ ↦ pt x) f (_ ↦ l₀ x))
+  (SST.Link.disc ⊤ A B (_ ↦ pt) f (_ ↦ l₀))
 
 {`
 # Boundaries and Fillers
@@ -450,43 +647,52 @@ match n [
 
 ` SST.▲.elim .s (SST.▲.pt n) = ○a .pt
 
-def SST.▲.elim
+def SST.▲.rec
   (n : Nat)
   (A : SST)
   (○a : ○ n A)
   (●a : ● n A ○a)
   : SST.Hom (SST.▲ n) A :=
 match n [
-| zero. ↦ SST.Disc.elim ⊤ A (_ ↦ ●a)
+| zero. ↦ SST.Disc.rec ⊤ A (_ ↦ ●a)
 | suc. n ↦
   SST.Cone.rec
     (SST.▲ n) A
     (○a .pt)
-    (SST.▲.elim n A (○a .∂a) (○a .a))
-    (SST.▲.link n A ○a ●a)
+    (SST.▲.rec n A (○a .∂a) (○a .a))
+    (SST.▲.elim n A (○a .pt) (○a .∂a) (○a .∂a') (○a .a) ●a)
 ]
 
-and SST.▲.link
+and SST.▲.elim
   (n : Nat)
   (A : SST)
-  (○a : ○ (suc. n) A)
-  (●a : ● (suc. n) A ○a)
-  : SST.Section (SST.▲ n) A (A .s (○a .pt)) (SST.▲.elim n A (○a .∂a) (○a .a)) :=
+  (pt : A .z)
+  (○a : ○ n A)
+  (○a' : ○⁽ᵈ⁾ n (Nat.degen n) A (A .s pt) ○a)
+  (●a : ● n A ○a)
+  (●a' : ●⁽ᵈ⁾ n (Nat.degen n) A (A .s pt) ○a ○a' ●a)
+  : SST.Section (SST.▲ n) A (A .s pt) (SST.▲.rec n A ○a ●a) :=
 match n [
-| zero. ↦ ? `Easy: ●a has exactly what we need.
+| zero. ↦ SST.Disc.elim ⊤ A (A .s pt) (_ ↦ ●a) (_ ↦ ●a')
 | suc. n ↦
-
-  ` Characterize the sections of Join.rec
-  SST.▲.link n A (○a .∂a) (○a .a)
+  SST.Join.elim
+    SST.▲₀ (SST.▲ n) A
+    (SST.Disc.rec ⊤ A (_ ↦ ○a .pt))
+    (SST.▲.rec n A (○a .∂a) (○a .a))
+    (SST.Link.disc ⊤ (SST.▲ n) A
+      (_ ↦ ○a .pt)
+      (SST.▲.rec n A (○a .∂a) (○a .a))
+      (_ ↦ SST.▲.elim n A (○a .pt) (○a .∂a) (○a .∂a') (○a .a) ●a))
+    (A .s pt)
+    (SST.Disc.elim ⊤ A (A .s pt) (_ ↦ ○a .pt) (_ ↦ ○a' .pt))
+    (SST.▲.elim n A pt (○a .∂a) (○a' .∂a) (○a .a) (○a' .a))
+    ?
+    ` (SST.LinkP.disc ⊤ (SST.▲ n)
+    `   A (A .s pt)
+    `   (_ ↦ ○a .pt) (_ ↦ ○a' .pt)
+    `   (SST.▲.rec n A (○a .∂a) (○a .a))
+    `   (SST.▲.elim n A pt (○a .∂a) (○a' .∂a) (○a .a) (○a' .a))
+    `   (_ ↦ SST.▲.elim n A (○a .pt) (○a .∂a) (○a .∂a') (○a .a) ●a)
+    `   `(_ ↦ ?)
+    `   )
 ]
-
-` def SST.▲.link
-`   (n : Nat)
-`   (A : SST)
-`   (○a : ○ n A)
-`   (●a : ● n A ○a)
-`   : SST.Hom⁽ᵈ⁾
-` ` [
-` ` | .z ↦ v ↦ SST.Disc.elim ⊤
-` ` | .s ↦ v ↦ ?
-` ]
