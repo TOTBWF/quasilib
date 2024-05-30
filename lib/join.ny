@@ -105,6 +105,11 @@ def SST.Hom (X Y : SST) : Type := codata [
 | f .s : (x : X .z) → SST.Hom⁽ᵈ⁾ X (X .s x) Y (Y .s (f .z x)) f
 ]
 
+def SST.Elim (A B : SST) : Type := codata [
+| f .z : SST.Hom A B
+| f .s : (Mot : SST⁽ᵈ⁾ B) (a : A .z) → SST.Elim⁽ᵈ⁾ A (A .s a) B Mot f
+]
+
 {`
 ## Total Spaces
 `}
@@ -134,6 +139,8 @@ def SST.∫.π (B : SST) (E : SST⁽ᵈ⁾ B) : SST.Hom (∫ B E) B := [
 `       f   v
 `   A ----> B
 `
+` Morally, a section `p : Section Γ A P a` can be thought of as a term of a dependent
+` type `Γ ⊢ p : P(a)`.
 def SST.Section (A B : SST) (E : SST⁽ᵈ⁾ B) (f : SST.Hom A B) : Type := codata [
 | S .z : (a : A .z) → E .z (f .z a)
 | S .s : (a : A .z) →
@@ -156,6 +163,7 @@ def SST.Pullback (A B : SST) (f : SST.Hom A B) (E : SST⁽ᵈ⁾ B) : SST⁽ᵈ�
     f (f .s a)
     E (sym (E .s (f .z a) (e .ungel))))
 ]
+
 
 {`
 ## The terminal SST
@@ -184,9 +192,14 @@ def SST.⊥ : SST := [
 ]
 
 ` Universal property of the initial SST.
-def SST.⊥.elim (A : SST) : SST.Hom SST.⊥ A := [
+def SST.⊥.rec (A : SST) : SST.Hom SST.⊥ A := [
 | .z ↦ ff ↦ absurd (A .z) ff
-| .s ↦ ff ↦ SST.⊥.elim⁽ᵈ⁾ A (A .s (absurd (A .z) ff))
+| .s ↦ ff ↦ SST.⊥.rec⁽ᵈ⁾ A (A .s (absurd (A .z) ff))
+]
+
+def SST.⊥.elim (A : SST) : SST.Elim SST.⊥ A := [
+| .z ↦ SST.⊥.rec A
+| .s ↦ Mot a ↦ SST.⊥.elim⁽ᵈ⁾ A Mot
 ]
 
 {`
@@ -212,27 +225,19 @@ def SST.Disc.rec (X : Type) (A : SST) (a : X → A .z) : SST.Hom (SST.Disc X) A 
           (ff .ungel))
 ]
 
-def SST.Disc.elim
-  (X : Type)
-  (A : SST) (A' : SST⁽ᵈ⁾ A)
-  (a : X → A .z) (a' : (x : X) → A' .z (a x))
-  : SST.Section (SST.Disc X) A A' (SST.Disc.rec X A a)
-  :=
-[
-| .z ↦ x ↦ a' x
-| .s ↦ x ↦
+def SST.Disc.elim (X : Type) (A : SST) (pt : X → A .z) : SST.Elim (SST.Disc X) A := [
+| .z ↦ SST.Disc.rec X A pt
+| .s ↦ Mot x ↦
   SST.Disc.elim⁽ᵈ⁾
     X (Gel X (_ ↦ ⊥))
-    A (A .s (a x))
-    A' (sym (A' .s (a x) (a' x)))
-    a (x' ff ↦ absurd (A .s (a x) .z (a x')) (ff .ungel))
-    a' (x' ff ↦
-      absurd
-        (sym (A' .s (a x) (a' x)) .z (a x') (absurd (A .s (a x) .z (a x')) (ff .ungel)) (a' x'))
-        (ff .ungel))
+    A Mot
+    pt (x ff ↦ absurd (Mot .z (pt x)) (ff .ungel))
 ]
 
 def SST.▲₀ : SST := SST.Disc ⊤
+
+def SST.▲₀.elim (A : SST) (pt : A .z) : SST.Elim SST.▲₀ A :=
+  SST.Disc.elim ⊤ A (_ ↦ pt)
 
 {`
 ## Constant display
@@ -301,22 +306,39 @@ def SST.Trivial.rec
 ]
 
 def SST.Trivial.elim
-  (A : SST)
-  (B : SST) (B' : SST⁽ᵈ⁾ B)
+  (A B : SST)
   (f : SST.Hom A B)
-  (E : SST⁽ᵈ⁾ B) (E' : SST⁽ᵈᵈ⁾ B B' E)
-  (s : SST.Section A B E f)
-  : SST.Section⁽ᵈ⁾
-    A (SST.Trivial A)
-    B B'
-    E E'
-    f (SST.Trivial.rec A B f B')
-    s
-  :=
+  (P : SST⁽ᵈ⁾ B)
+  (e : SST.Elim A B)
+  : SST.Elim⁽ᵈ⁾ A (SST.Trivial A) B P e :=
 [
-| .z ↦ a ff ↦ match (ff .ungel) []
-| .s ↦ a ff ↦ match (ff .ungel) []
+| .z ↦ [
+  | .z ↦ a ff ↦ match (ff .ungel) []
+  | .s ↦ a ff ↦ match (ff .ungel) []
+  ]
+| .s ↦ Q R a ff ↦ match (ff .ungel) []
 ]
+` def SST.Trivial.elim
+`   (A : SST)
+`   (B : SST) (B' : SST⁽ᵈ⁾ B)
+`   (f : SST.Hom A B)
+`   (E : SST⁽ᵈ⁾ B) (E' : SST⁽ᵈᵈ⁾ B B' E)
+`   (s : SST.Section A B E f)
+`   : SST.Section⁽ᵈ⁾
+`     A (SST.Trivial A)
+`     B B'
+`     E E'
+`     f (SST.Trivial.rec A B f B')
+`     s
+`   :=
+` [
+` | .z ↦ a ff ↦ match (ff .ungel) []
+` | .s ↦ a ff ↦ match (ff .ungel) []
+` ]
+
+{`
+# Eliminators
+`}
 
 {`
 # Joins
