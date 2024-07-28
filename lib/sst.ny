@@ -86,6 +86,13 @@ section SST :=
   ]
 
 
+  ` Trivially display a semisimplicial type `B` over another semisimplicial type `A`.
+  ` This corresponds to the bundle `A × B → A`.
+  def Const (A B : SST) : SST⁽ᵈ⁾ A := [
+  | .z ↦ Gel (A .z) (_ ↦ B .z)
+  | .s ↦ a b ↦ sym (Const⁽ᵈ⁾ A (A .s a) B (B .s (b .ungel)))
+  ]
+
   ` The terminal SST.
   def Unit : SST := [
   | .z ↦ ⊤
@@ -109,6 +116,10 @@ section SST :=
     ]
   end
 
+  ` A common pattern is to display `Unit` over `A`; this corresponds to
+  ` the identity bundle `A → A`.
+  def Id (A : SST) : SST⁽ᵈ⁾ A := Const A Unit
+
   ` The initial SST.
   def Empty : SST := [
   | .z ↦ ⊥
@@ -120,6 +131,99 @@ section SST :=
     def recurse (A : SST) : Hom Empty A := [
     | .z ↦ ff ↦ absurd (A .z) ff
     | .s ↦ ff ↦ recurse⁽ᵈ⁾ A (A .s (absurd (A .z) ff))
+    ]
+  end
+
+  ` It is also common to display `Empty` over `A`; this has the effect
+  ` of forming the trivial bundle `⊥ → A`.
+  def Trivial (A : SST) : SST⁽ᵈ⁾ A := Const A Empty
+
+  section Trivial :=
+    def recurse
+      (A B : SST) (f : Hom A B)
+      (B' : SST⁽ᵈ⁾ B)
+      : Hom⁽ᵈ⁾ A (Trivial A) B B' f := [
+      | .z ↦ a ff ↦ match (ff .ungel) []
+      | .s ↦ a ff ↦ match (ff .ungel) []
+      ]
+  end
+
+  ` The product of semisimplicial types.
+  def Prod (A B : SST) : SST := [
+  | .z ↦ sig (fst : A .z, snd : B .z)
+  | .s ↦ ab ↦ Prod⁽ᵈ⁾ A (A .s (ab .fst)) B (B .s (ab .snd))
+  ]
+
+  section Prod :=
+    ` The first projection out of a product.
+    def fst (A B : SST) : Hom (Prod A B) A := [
+    | .z ↦ ab ↦ ab .fst
+    | .s ↦ ab ↦ fst⁽ᵈ⁾ A (A .s (ab .fst)) B (B .s (ab .snd))
+    ]
+
+    ` The second projection out of a product.
+    def snd (A B : SST) : Hom (Prod A B) B := [
+    | .z ↦ ab ↦ ab .snd
+    | .s ↦ ab ↦ snd⁽ᵈ⁾ A (A .s (ab .fst)) B (B .s (ab .snd))
+    ]
+
+    ` The universal property of the product.
+    def intro (X A B : SST) (f : Hom X A) (g : Hom X B) : Hom X (Prod A B) := [
+    | .z ↦ x ↦ (fst := f .z x, snd := g .z x)
+    | .s ↦ x ↦
+      intro⁽ᵈ⁾
+        X (X .s x)
+        A (A .s (f .z x))
+        B (B .s (g .z x))
+        f (f .s x)
+        g (g .s x)
+    ]
+  end
+
+  ` The coproduct of two semisimplicial types.
+  def Coprod (A B : SST) : SST := [
+  | .z ↦ A .z ⊎ B .z
+  | .s ↦ [
+    | inl. a ↦ Coprod⁽ᵈ⁾ A (A .s a) B (Trivial B)
+    | inr. b ↦ Coprod⁽ᵈ⁾ A (Trivial A) B (B .s b)
+    ]
+  ]
+
+  section Coprod :=
+    ` Left inclusion into the coproduct.
+    def inl (A B : SST) : Hom A (Coprod A B) := [
+    | .z ↦ a ↦ inl. a
+    | .s ↦ a ↦ inl⁽ᵈ⁾ A (A .s a) B (Trivial B)
+    ]
+
+    ` Right inclusion into the coproduct.
+    def inr (A B : SST) : Hom B (Coprod A B) := [
+    | .z ↦ b ↦ inr. b
+    | .s ↦ b ↦ inr⁽ᵈ⁾ A (Trivial A) B (B .s b)
+    ]
+
+    ` Universal property of the coproduct.
+    def recurse (A B X : SST) (f : Hom A X) (g : Hom B X) : Hom (Coprod A B) X := [
+    | .z ↦ [
+      | inl. a ↦ f .z a
+      | inr. b ↦ g .z b
+      ]
+    | .s ↦ [
+      | inl. a ↦
+          recurse⁽ᵈ⁾
+            A (A .s a)
+            B (Trivial B)
+            X (X .s (f .z a))
+            f (f .s a)
+            g (Trivial.recurse B X g (X .s (f .z a)))
+      | inr. b ↦
+          recurse⁽ᵈ⁾
+            A (Trivial A)
+            B (B .s b)
+            X (X .s (g .z b))
+            f (Trivial.recurse A X f (X .s (g .z b)))
+            g (g .s b)
+      ]
     ]
   end
 
@@ -158,19 +262,4 @@ section SST :=
         f (_ _ ↦ (ungel := ()))
     ]
   end
-
-  ` Trivially display a semisimplicial type `B` over another semisimplicial type `A`.
-  ` This corresponds to the bundle `A × B → A`.
-  def Const (A B : SST) : SST⁽ᵈ⁾ A := [
-  | .z ↦ Gel (A .z) (_ ↦ B .z)
-  | .s ↦ a b ↦ sym (Const⁽ᵈ⁾ A (A .s a) B (B .s (b .ungel)))
-  ]
-
-  ` A common pattern is to display `Unit` over `A`; this corresponds to
-  ` the identity bundle `A → A`.
-  def Id (A : SST) : SST⁽ᵈ⁾ A := Const A Unit
-
-  ` It is also common to display `Empty` over `A`; this has the effect
-  ` of forming the trivial bundle `⊥ → A`.
-  def Trivial (A : SST) : SST⁽ᵈ⁾ A := Const A Empty
 end
