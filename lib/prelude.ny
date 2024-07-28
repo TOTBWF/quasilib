@@ -14,6 +14,15 @@ def ⊤ : Type := sig #(transparent) ()
 ` Empty type.
 def ⊥ : Type := data []
 
+def absurd (A : Type) (ff : ⊥) : A := match ff []
+
+` Product types
+
+` Sigma types.
+def Σ (A : Type) (B : A → Type) : Type :=
+  sig (fst : A, snd : B fst)
+
+
 ` Coproduct types.
 def Either (A B : Type) : Type :=
 data [
@@ -22,6 +31,24 @@ data [
 ]
 
 notation 5 Either : A "⊎" B := Either A B
+
+section Either :=
+  ` Recursion principle for coproducts.
+  def recurse (A B X : Type) (f : A → X) (g : B → X) : A ⊎ B → X := [
+  | inl. a ↦ f a
+  | inr. b ↦ g b
+  ]
+
+  ` Elimination principle for coproducts.
+  def elim
+    (A B : Type) (P : A ⊎ B → Type)
+    (f : (a : A) → P (inl. a))
+    (g : (b : B) → P (inr. b))
+    : (ab : A ⊎ B) → P ab := [
+    | inl. a ↦ f a
+    | inr. b ↦ g b
+    ]
+end
 
 ` Identity types.
 def Path (A : Type) (x : A) : A → Type :=
@@ -52,6 +79,7 @@ match p [
 ` Natural numbers
 ` ----------------------------------------
 
+
 ` The type of natural numbers
 def Nat : Type :=
 data [
@@ -59,30 +87,33 @@ data [
 | suc.  : Nat → Nat
 ]
 
-` Degenerate a natural number.
-def Nat.degen (n : Nat) : Nat⁽ᵈ⁾ n :=
-match n [
-| zero.  ↦ zero.
-| suc. n ↦ suc. (Nat.degen n)
-]
+section Nat :=
 
-` Addition.
-def Nat.add (k n : Nat) : Nat :=
-match k [
-| zero. ↦ n
-| suc. k ↦ suc. (Nat.add k n)
-]
+  ` Degenerate a natural number.
+  def degen (n : Nat) : Nat⁽ᵈ⁾ n :=
+  match n [
+  | zero.  ↦ zero.
+  | suc. n ↦ suc. (degen n)
+  ]
 
-` Ordering on natural numbers.
-def Nat.lte (k n : Nat) : Type :=
-match k , n [
-| zero.  , n      ↦ ⊤
-| suc. k , zero.  ↦ ⊥
-| suc. k , suc. n ↦ Nat.lte k n
-]
+  ` Addition.
+  def add (k n : Nat) : Nat :=
+  match k [
+  | zero. ↦ n
+  | suc. k ↦ suc. (add k n)
+  ]
 
-` Strict ordering on natural numbers.
-def Nat.lt (k n : Nat) : Type := Nat.lte (suc. k) n
+  ` Ordering on natural numbers.
+  def lte (k n : Nat) : Type :=
+  match k , n [
+  | zero.  , n      ↦ ⊤
+  | suc. k , zero.  ↦ ⊥
+  | suc. k , suc. n ↦ lte k n
+  ]
+
+  ` Strict ordering on natural numbers.
+  def lt (k n : Nat) : Type := lte (suc. k) n
+end
 
 notation 5 Nat.lte : k "≤" n := Nat.lte k n
 notation 5 Nat.lt : k "<" n := Nat.lt k n
