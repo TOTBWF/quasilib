@@ -103,6 +103,14 @@ section Nat :=
   | suc. k ↦ suc. (add k n)
   ]
 
+  ` Subtraction.
+  def sub (n k : Nat) : Nat :=
+  match k, n [
+  | zero. , n ↦ n
+  | suc. k , zero. ↦ zero.
+  | suc. k , suc. n ↦ sub n k
+  ]
+
   ` Ordering on natural numbers.
   def lte (k n : Nat) : Type :=
   match k , n [

@@ -262,4 +262,11 @@ section SST :=
         f (_ _ ↦ (ungel := ()))
     ]
   end
+
+  ` The opposite of an SST.
+  def Op (A : SST) : SST :=
+  [
+  | .z ↦ A .z
+  | .s ↦ x ↦ Op⁽ᵈ⁾ A (Slice A x)
+  ]
 end
