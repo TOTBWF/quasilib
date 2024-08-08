@@ -89,4 +89,41 @@ section SST :=
       (○a .∂a' .a)
       (sym ●a)
   ]
+
+  ` Turn an n-boundary in the opposite SST into an un-opped n-boundary.
+  def ○.unop (n : Nat) (A : SST) (○a : ○ n (Op A)) : ○ n A :=
+    match n [
+    | zero. ↦ ()
+    | suc. n ↦
+      ○.↓₂ n A
+        (○a .pt
+        , ○.unop n A (○a .∂a)
+        , ●.unop n A (○a .∂a) (○a .a)
+        , ○.unop⁽ᵈ⁾
+          n (Nat.degen n)
+          A (SST.Slice A (○a .pt))
+          (○a .∂a) (○a .∂a')
+        )
+    ]
+
+  ` Turn an n-boundary filler in the opposite SST into an un-opped n-boundary filler.
+  and ●.unop (n : Nat) (A : SST) (○a : ○ n (Op A)) (●a : ● n (Op A) ○a) : ● n A (○.unop n A ○a) :=
+    match n [
+    | zero. ↦ ●a
+    | suc. n ↦
+      ●.↓₂ n A
+        (○a .pt
+        , ○.unop n A (○a .∂a)
+        , ●.unop n A (○a .∂a) (○a .a)
+        , ○.unop⁽ᵈ⁾
+          n (Nat.degen n)
+          A (SST.Slice A (○a .pt))
+          (○a .∂a) (○a .∂a')
+        )
+        (●.unop⁽ᵈ⁾
+          n (Nat.degen n)
+          A (SST.Slice A (○a .pt))
+          (○a .∂a) (○a .∂a')
+          (○a .a) ●a)
+    ]
 end
