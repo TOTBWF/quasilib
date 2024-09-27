@@ -22,6 +22,11 @@ def absurd (A : Type) (ff : ⊥) : A := match ff []
 def Σ (A : Type) (B : A → Type) : Type :=
   sig (fst : A, snd : B fst)
 
+def Pair (A : Type) (B : Type) : Type :=
+  sig (fst : A, snd : B)
+
+notation 6 Pair : A "×" B := Pair A B
+
 
 ` Coproduct types.
 def Either (A B : Type) : Type :=
