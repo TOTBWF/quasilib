@@ -116,6 +116,12 @@ section Nat :=
   | suc. k , suc. n ↦ sub n k
   ]
 
+  def pred (n : Nat) : Nat :=
+  match n [
+  | zero. ↦ zero.
+  | suc. n ↦ n
+  ]
+
   ` Ordering on natural numbers.
   def lte (k n : Nat) : Type :=
   match k , n [

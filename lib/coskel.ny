@@ -2,38 +2,26 @@ import "prelude"
 import "sst"
 import "boundary"
 
-
+` The type of SSTs, where all data at or above dimension `k` is trivial.
 def tSST (k : Nat) : Type :=
 match k [
 | zero. ↦ ⊤
-| suc. k ↦ sig (∂A : tSST k, ●A : tSST.○ k ∂A → Type)
+| suc. k ↦ codata [
+  | X .z : Type
+  | X .s : X .z → tSST⁽ᵈ⁾ k (Nat.degen k) (tSST.π (suc. k) X)
+  ]
 ]
 
-and tSST.π (k : Nat) (A : tSST (suc. k)) : tSST k := A .∂A
-
-and tSST.○ (k : Nat) (A : tSST k) : Type :=
-match k [
-| zero. ↦ ⊤
-| suc. k ↦
-  sig
-    ( pt : tSST.z k A
-    , ∂a : tSST.○ k (A .∂A)
-    , a : A .●A ∂a
-    , ∂a' : tSST.○⁽ᵈ⁾ k (Nat.degen k) (A .∂A) (tSST.s k A pt) ∂a
-    )
-]
-
-and tSST.z (k : Nat) (A : tSST (suc. k)) : Type :=
-match k [
-| zero. ↦ A .●A ()
-| suc. k ↦ tSST.z k (A .∂A)
-]
-
-and tSST.s
-  (k : Nat) (A : tSST (suc. k)) (x : tSST.z k A)
-  : tSST⁽ᵈ⁾ k (Nat.degen k) (tSST.π k A)
-  :=
+` Note that it is really easy to get a lower dimensional tSST with this data.
+and tSST.π (k : Nat) (X : tSST k) : tSST (Nat.pred k) :=
 match k [
 | zero. ↦ ()
-| suc. k ↦ (tSST.s k (A .∂A) x , ○a ○a' ↦ Gel (A .∂A .●A ○a) (●a ↦ A .●A (x, ○a, ●a , ○a')))
+| suc. zero. ↦ ()
+| suc. (suc. k) ↦ [
+  | .z ↦ X .z
+  | .s ↦ x ↦
+    tSST.π⁽ᵈ⁾
+      (suc. k) (Nat.degen (suc. k))
+      (tSST.π (suc. (suc. k)) X) (X .s x)
+  ]
 ]
