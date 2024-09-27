@@ -51,7 +51,7 @@ section SST :=
   | pt .s : Pt⁽ᵈ⁾ A (A .s (pt .z)) pt
   ]
 
-  ` Sections of a displayed SST along a map; these correspond to lifts of the following
+  ` Lifts of a displayed SST along a map; these correspond to lifts of the following
   ` diagram:
   `
   `           E
@@ -60,12 +60,12 @@ section SST :=
   `       f   v
   `   A ----> B
   `
-  ` Morally, a section `p : Section Γ A P a` can be thought of as a term of a dependent
+  ` Morally, a lift `p : Lift Γ A P a` can be thought of as a term of a dependent
   ` type `Γ ⊢ p : P(a)`.
-  def Section (A B : SST) (f : Hom A B) (E : SST⁽ᵈ⁾ B) : Type := codata [
+  def Lift (A B : SST) (f : Hom A B) (E : SST⁽ᵈ⁾ B) : Type := codata [
   | S .z : (a : A .z) → E .z (f .z a)
   | S .s : (a : A .z) →
-    Section⁽ᵈ⁾
+    Lift⁽ᵈ⁾
       A (A .s a)
       B (B .s (f .z a))
       f (f .s a)
@@ -150,7 +150,7 @@ section SST :=
 
   ` The product of semisimplicial types.
   def Prod (A B : SST) : SST := [
-  | .z ↦ sig (fst : A .z, snd : B .z)
+  | .z ↦ A .z × B .z
   | .s ↦ ab ↦ Prod⁽ᵈ⁾ A (A .s (ab .fst)) B (B .s (ab .snd))
   ]
 
