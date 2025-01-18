@@ -44,6 +44,18 @@ section SST :=
   | .s ↦ y α ↦ sym (Slice⁽ᵈ⁾ A (A .s y) x (α .ungel))
   ]
 
+  ` For the sake of completeness, we define coslices as an
+  ` abbreviation for 'A .s x'.
+  def Coslice (A : SST) (x : A .z) : SST⁽ᵈ⁾ A := A .s x
+
+  ` The opposite of an SST.
+  def Op (A : SST) : SST :=
+  [
+  | .z ↦ A .z
+  | .s ↦ x ↦ Op⁽ᵈ⁾ A (Slice A x)
+  ]
+
+
   ` A global element of an SST.
   ` This consists of a 0-simplex `x : A .z`, a loop `α : A .s x .z x`, and so on.
   def Pt (A : SST) : Type := codata [
@@ -262,11 +274,4 @@ section SST :=
         f (_ _ ↦ (ungel := ()))
     ]
   end
-
-  ` The opposite of an SST.
-  def Op (A : SST) : SST :=
-  [
-  | .z ↦ A .z
-  | .s ↦ x ↦ Op⁽ᵈ⁾ A (Slice A x)
-  ]
 end
