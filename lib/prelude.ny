@@ -74,11 +74,38 @@ match p [
 | refl. ↦ x'
 ]
 
+def J₂
+  (A : Type) (P : (x y : A) → Path A x y → Type)
+  (r : (x : A) → P x x refl.)
+  (x y : A) (p : Path A x y)
+  : P x y p :=
+match p [
+| refl. ↦ r x
+]
+
+def Path.sym (A : Type) (x y : A) (p : Path A y x) : Path A x y :=
+match p [
+refl. ↦ refl.
+]
+
+def Path.trans (A : Type) (x y z : A) (p : Path A x y) (q : Path A y z) : Path A x z :=
+match p, q [
+| refl., refl. ↦ refl.
+]
+
 ` Congruence.
 def cong (A B : Type) (f : A → B) (x y : A) (p : Path A x y) : Path B (f x) (f y) :=
 match p [
 | refl. ↦ refl.
 ]
+
+` PathP is defined via transport. This tends to work better than Path⁽ᵈ⁾ in
+` practice, as it avoids an annoying 'Gel'.
+def PathP
+  (A : Type) (B : A → Type)
+  (a0 : A) (b0 : B a0) (a1 : A) (b1 : B a1)
+  (p : Path A a0 a1) : Type :=
+  Path (B a1) (subst A B a0 a1 p b0) b1
 
 ` ----------------------------------------
 ` Natural numbers
@@ -136,3 +163,13 @@ end
 
 notation 5 Nat.lte : k "≤" n := Nat.lte k n
 notation 5 Nat.lt : k "<" n := Nat.lt k n
+
+` ----------------------------------------
+` Booleans
+` ----------------------------------------
+
+def Bool : Type :=
+data [
+| false. : Bool
+| true. : Bool
+]
